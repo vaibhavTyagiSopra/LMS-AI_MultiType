@@ -1,63 +1,66 @@
-// Builds audience-aware prompts for each type.
-
+// prompt.js (tightened endings + no code fences)
 function rubricToText(criteria = []) {
   return criteria.map(c => `- ${c.name} (${c.weight}%): ${c.description}`).join("\n");
 }
 
 export function buildPrompt({ type, audience, payload, rubric }) {
   const rubricText = rubricToText(rubric.criteria);
+  const jsonRule = "Return ONLY valid JSON. No markdown, no commentary.";
 
   if (type === "essay") {
     const role = audience === "instructor"
-      ? "Provide rubric-aligned, professional assessment that a teacher can use."
+      ? "Provide rubric-aligned, professional assessment usable by a teacher."
       : "Provide encouraging, plain-language feedback that helps the student improve.";
     return `
-You are an expert writing coach.
-${role}
-Return STRICT JSON with keys:
-strengths (string), improvements (string), next_actions (array of 3 short items), rubric_scores (object of criterion->0..5).
+You are an expert writing coach. ${role}
+Output schema:
+{
+  "strengths": "string",
+  "improvements": "string",
+  "next_actions": ["string","string","string"],
+  "rubric_scores": {"Clarity":0-5,"Evidence":0-5,"Structure":0-5}
+}
 
 Rubric:
 ${rubricText}
 
 Submission:
-"""${payload.text}"""
+${payload.text}
 
-JSON ONLY.`;
+${jsonRule}`.trim();
   }
 
   if (type === "quiz") {
-    const role = audience === "instructor"
-      ? "Be concise and rubric-aligned."
-      : "Be supportive and actionable.";
+    const role = audience === "instructor" ? "Be concise and rubric-aligned." : "Be supportive and actionable.";
     return `
-You evaluate a short-answer quiz response against a reference answer.
-${role}
-Return STRICT JSON: correctness ("correct"|"partial"|"incorrect"), justification (string),
-next_actions (array of up to 3), rubric_scores (object of criterion->0..5).
+You evaluate a short-answer response against a reference answer. ${role}
+Output schema:
+{
+  "correctness": "correct|partial|incorrect",
+  "justification": "string",
+  "next_actions": ["string"],
+  "rubric_scores": {"Accuracy":0-5,"Completeness":0-5}
+}
 
 Question: ${payload.question}
 Reference answer: ${payload.reference}
 Student answer: ${payload.answer}
 
-Rubric:
-${rubricText}
-
-JSON ONLY.`;
+${jsonRule}`.trim();
   }
 
   if (type === "mcq") {
-    // We will compute correctness in API; LLM explains rationale.
-    const role = audience === "instructor"
-      ? "Provide rationale concise and rubric-aligned."
-      : "Explain simply why the chosen options are right/wrong.";
-    const opts = payload.options.map((o, i) => `${String.fromCharCode(65+i)}. ${o}`).join("\n");
-    const chosen = payload.selected.map(i => String.fromCharCode(65+i)).join(", ");
-    const correct = payload.correct.map(i => String.fromCharCode(65+i)).join(", ");
+    const role = audience === "instructor" ? "Provide concise rationale aligned to rubric." : "Explain simply why the choices are right/wrong.";
+    const opts = payload.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join("\n");
+    const chosen = payload.selected.map(i => String.fromCharCode(65 + i)).join(", ");
+    const correct = payload.correct.map(i => String.fromCharCode(65 + i)).join(", ");
     return `
-You explain MCQ results to the specified audience.
-${role}
-Return STRICT JSON: rationale (string), next_actions (array of up to 3).
+You explain MCQ outcomes. ${role}
+Output schema:
+{
+  "rationale": "string",
+  "next_actions": ["string"]
+}
 
 Question: ${payload.question}
 Options:
@@ -65,34 +68,27 @@ ${opts}
 Chosen: ${chosen}
 Correct: ${correct}
 
-Rubric:
-${rubricText}
-
-JSON ONLY.`;
+${jsonRule}`.trim();
   }
 
   if (type === "code") {
-    const role = audience === "instructor"
-      ? "Focus on correctness, complexity, readability; map to rubric."
-      : "Give practical suggestions and small examples.";
+    const role = audience === "instructor" ? "Focus on correctness, complexity, readability; map to rubric." : "Give practical suggestions and small examples.";
     return `
-You are a senior ${payload.language} mentor. Review the code.
-${role}
-Return STRICT JSON with keys:
-strengths (string), improvements (string), next_actions (array of 3 short items),
-rubric_scores (object of criterion->0..5), possible_bugs (array of strings, up to 3).
+You are a senior ${payload.language} mentor. Review the code. ${role}
+Output schema:
+{
+  "strengths": "string",
+  "improvements": "string",
+  "next_actions": ["string","string","string"],
+  "possible_bugs": ["string"],
+  "rubric_scores": {"Correctness":0-5,"Readability":0-5,"Efficiency":0-5}
+}
 
 Code (${payload.language}):
-\`\`\`${payload.language}
 ${payload.source}
-\`\`\`
 
-Rubric:
-${rubricText}
-
-JSON ONLY.`;
+${jsonRule}`.trim();
   }
 
-  // Fallback
-  return "Return JSON: { note: 'unsupported type' }";
+  return `{"note":"unsupported type"}`;
 }

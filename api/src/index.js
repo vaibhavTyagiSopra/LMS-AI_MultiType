@@ -68,7 +68,8 @@ app.post("/api/feedback", async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.2
+      temperature: 0.2,
+      response_format: { type: "json_object" }
     });
     const latency = Date.now() - t0;
 
