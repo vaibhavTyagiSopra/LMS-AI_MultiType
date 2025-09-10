@@ -1,0 +1,13 @@
+{
+  "name": "faas-multi-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "openai": "^4.58.1",
+    "snowflake-sdk": "^1.11.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.23.8"
+  }
+}

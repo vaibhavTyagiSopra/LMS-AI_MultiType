@@ -1,0 +1,27 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+*.log
+
+# dotenv
+.env
+.env.local
+
+# build outputs
+dist/
+build/
+.cache/
+
+# Docker
+*.pid
+*.seed
+docker-compose.override.yml
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
